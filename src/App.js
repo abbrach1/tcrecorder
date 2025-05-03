@@ -46,6 +46,7 @@ function App() {
   const customRecordingRef = useRef(false);
   const [quietRms, setQuietRms] = useState(4);
   const [showQuietRmsInput, setShowQuietRmsInput] = useState(false);
+  const startSoundStartRef = useRef(null); // For robust recording start
 
   function log(msg) {
     setLogs(lgs => [...lgs.slice(-99), `[${new Date().toLocaleTimeString()}] ${msg}`]);
@@ -151,9 +152,20 @@ function App() {
       drawWaveform(arr);
       const threshold = manualCalibration !== null ? manualCalibration : thresholdRef.current;
       const stopThreshold = quietRms;
-      if (!customRecordingRef.current && rms > threshold) {
-        log('Sound detected above threshold, starting custom recording');
-        startCustomRecording();
+      if (!customRecordingRef.current) {
+        if (rms > threshold) {
+          if (!startSoundStartRef.current) {
+            startSoundStartRef.current = Date.now();
+          }
+          const held = (Date.now() - startSoundStartRef.current) / 1000;
+          if (held >= 0.7) { // Require 0.7s of sustained sound
+            log('Sound detected above threshold, starting custom recording');
+            startCustomRecording();
+            startSoundStartRef.current = null;
+          }
+        } else {
+          startSoundStartRef.current = null;
+        }
       }
       if (customRecordingRef.current) {
         log(`[DEBUG] Using quietRms: ${quietRms}, current RMS: ${rms}`);
@@ -342,78 +354,88 @@ function App() {
   }
 
   return (
-    <div className="app-container">
-      {micError && (
-        <div style={{color:'#b71c1c',background:'#ffeaea',padding:12,borderRadius:8,marginBottom:12,fontWeight:600}}>
-          {micError}
-        </div>
-      )}
-      {audioInputs.length > 0 && (
-        <div style={{marginBottom:12, display:'flex', justifyContent:'center'}}>
-          <label htmlFor="input-select" style={{marginRight:8,fontWeight:600}}>Microphone:</label>
-          <select
-            id="input-select"
-            value={selectedInput}
-            onChange={e => setSelectedInput(e.target.value)}
-            style={{padding:'4px 8px',fontSize:'1rem',borderRadius:4}}
-          >
-            <option value="default">Default</option>
-            {audioInputs.map(input => (
-              <option key={input.deviceId} value={input.deviceId}>{input.label || `Mic ${input.deviceId}`}</option>
-            ))}
-          </select>
-        </div>
-      )}
-      <div className="recorder-card">
-        <h1>Shiurim Recorder</h1>
-        <div className="status">{status}</div>
-        <div className="levels">
-          Calibration Level: {calibrationLevel.toFixed(2)} | Current RMS: {currentRms.toFixed(2)}
-        </div>
-        <button onClick={toggleManualCalibration} style={{margin:'0 0 8px 0',padding:'4px 12px',borderRadius:6,border:'none',background:'#e0e7ff',color:'#2d3a5a',fontWeight:600,cursor:'pointer',fontSize:'0.95rem',boxShadow:'0 1px 3px #dbeafe'}}>Manual Calibration</button>
-        {showManualCalibration && (
-          <div style={{marginBottom:8}}>
-            <input type="range" min="0.1" max="10" step="0.01" value={manualCalibration ?? calibrationLevel * 2.5} onChange={handleManualCalibrationChange} style={{width:180,marginRight:12}} />
-            <input type="number" min="0.1" max="10" step="0.01" value={manualCalibration ?? calibrationLevel * 2.5} onChange={handleManualCalibrationChange} style={{width:70}} />
-            <span style={{marginLeft:8}}>Threshold</span>
+    <div style={{minHeight:'100vh',background:'linear-gradient(135deg,#e0e7ff 0%,#fffbe6 100%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',padding:'0 0 48px 0'}}>
+      <header style={{width:'100%',background:'#2d3a5a',padding:'32px 0 18px 0',marginBottom:24,boxShadow:'0 2px 8px #cfd8dc'}}>
+        <h1 style={{textAlign:'center',color:'#fff',fontSize:'2.2rem',letterSpacing:1.5,fontWeight:800,margin:0}}>TORAS CHAIM SHIUR RECORDER- BEIS MEDRASH SERVER</h1>
+      </header>
+      <div style={{background:'#fff',borderRadius:18,boxShadow:'0 4px 24px #cfd8dc',padding:'32px 36px 28px 36px',width:'100%',maxWidth:480,display:'flex',flexDirection:'column',alignItems:'center'}}>
+        {micError && (
+          <div style={{color:'#b71c1c',background:'#ffeaea',padding:12,borderRadius:8,marginBottom:12,fontWeight:600}}>
+            {micError}
           </div>
         )}
-        <div style={{marginBottom:8}}>
-          {!customRecording && (
-            <span style={{color:'#1976d2',fontWeight:600}}>
-              Listening for sound...
-            </span>
+        {audioInputs.length > 0 && (
+          <div style={{marginBottom:12, display:'flex', justifyContent:'center'}}>
+            <label htmlFor="input-select" style={{marginRight:8,fontWeight:600}}>Microphone:</label>
+            <select
+              id="input-select"
+              value={selectedInput}
+              onChange={e => setSelectedInput(e.target.value)}
+              style={{padding:'4px 8px',fontSize:'1rem',borderRadius:4}}
+            >
+              <option value="default">Default</option>
+              {audioInputs.map(input => (
+                <option key={input.deviceId} value={input.deviceId}>{input.label || `Mic ${input.deviceId}`}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div className="recorder-card">
+          <h1>Shiurim Recorder</h1>
+          <div className="status">{status}</div>
+          <div className="levels">
+            Calibration Level: {calibrationLevel.toFixed(2)} | Current RMS: {currentRms.toFixed(2)}
+          </div>
+          <button onClick={toggleManualCalibration} style={{margin:'0 0 8px 0',padding:'4px 12px',borderRadius:6,border:'none',background:'#e0e7ff',color:'#2d3a5a',fontWeight:600,cursor:'pointer',fontSize:'0.95rem',boxShadow:'0 1px 3px #dbeafe'}}>Manual Calibration</button>
+          {showManualCalibration && (
+            <div style={{marginBottom:8}}>
+              <input type="range" min="0.1" max="10" step="0.01" value={manualCalibration ?? calibrationLevel * 2.5} onChange={handleManualCalibrationChange} style={{width:180,marginRight:12}} />
+              <input type="number" min="0.1" max="10" step="0.01" value={manualCalibration ?? calibrationLevel * 2.5} onChange={handleManualCalibrationChange} style={{width:70}} />
+              <span style={{marginLeft:8}}>Threshold</span>
+            </div>
           )}
-        </div>
-        <canvas ref={waveformRef} width={320} height={60} style={{background:'#f5f7fa',borderRadius:8,marginBottom:12}} />
-        {customRecording && (
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',marginBottom:8}}>
-            <div className={customRecording ? 'recording-indicator better' : 'recording-indicator'} style={{marginRight:12}} />
-            <span style={{fontWeight:600,color:'#ff1744',fontSize:'1.25rem'}}>Recording {Math.floor((Date.now() - (customRecordingStartRef.current || 0)) / 1000)}s</span>
-          </div>
-        )}
-        {customRecording && quietSeconds > 0 && (
-          <div style={{color:'#b08968',fontWeight:600,fontSize:'1.1rem',marginBottom:8}}>
-            Quiet for {quietSeconds}s
-          </div>
-        )}
-        <button onClick={() => setShowQuietRmsInput(v => !v)} style={{margin:'8px 0 8px 0',padding:'6px 14px',borderRadius:6,border:'1px solid #b08968',background:'#f6f8fa',color:'#795548',fontWeight:600,cursor:'pointer',fontSize:'0.98rem'}}>Set Quiet RMS</button>
-        {showQuietRmsInput && (
           <div style={{marginBottom:8}}>
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              value={quietRms}
-              onChange={e => setQuietRms(Number(e.target.value))}
-              style={{width:80,padding:'4px 6px',marginRight:8,borderRadius:4,border:'1px solid #b08968'}}
-            />
-            <span style={{color:'#795548',fontWeight:500}}>Quiet RMS threshold</span>
+            {!customRecording && (
+              <span style={{color:'#1976d2',fontWeight:600}}>
+                Listening for sound...
+              </span>
+            )}
           </div>
-        )}
-        <button onClick={recalibrate} style={{margin:'12px 0 0 0',padding:'8px 18px',borderRadius:6,border:'none',background:'#e0e7ff',color:'#2d3a5a',fontWeight:600,cursor:'pointer',fontSize:'1rem',boxShadow:'0 1px 4px #dbeafe'}}>Recalibrate</button>
-        <div style={{marginTop:24,textAlign:'left',fontSize:'0.88rem',maxHeight:90,overflowY:'auto',background:'#f6f8fa',borderRadius:8,padding:8,border:'1px solid #e0e0e0'}}>Logs:<br/>{logs.slice(-8).map((l,i) => <div key={i}>{l}</div>)}</div>
+          <canvas ref={waveformRef} width={320} height={60} style={{background:'#f5f7fa',borderRadius:8,marginBottom:12}} />
+          {customRecording && (
+            <div style={{display:'flex',alignItems:'center',justifyContent:'center',marginBottom:8}}>
+              <div className={customRecording ? 'recording-indicator better' : 'recording-indicator'} style={{marginRight:12}} />
+              <span style={{fontWeight:600,color:'#ff1744',fontSize:'1.25rem'}}>Recording {Math.floor((Date.now() - (customRecordingStartRef.current || 0)) / 1000)}s</span>
+            </div>
+          )}
+          {customRecording && quietSeconds > 0 && (
+            <div style={{color:'#b08968',fontWeight:600,fontSize:'1.1rem',marginBottom:8}}>
+              Quiet for {quietSeconds}s
+            </div>
+          )}
+          <button onClick={() => setShowQuietRmsInput(v => !v)} style={{margin:'8px 0 8px 0',padding:'6px 14px',borderRadius:6,border:'1px solid #b08968',background:'#f6f8fa',color:'#795548',fontWeight:600,cursor:'pointer',fontSize:'0.98rem'}}>Set Quiet RMS</button>
+          {showQuietRmsInput && (
+            <div style={{marginBottom:8}}>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={quietRms}
+                onChange={e => setQuietRms(Number(e.target.value))}
+                style={{width:80,padding:'4px 6px',marginRight:8,borderRadius:4,border:'1px solid #b08968'}}
+              />
+              <span style={{color:'#795548',fontWeight:500}}>Quiet RMS threshold</span>
+            </div>
+          )}
+          <button onClick={recalibrate} style={{margin:'12px 0 0 0',padding:'8px 18px',borderRadius:6,border:'none',background:'#e0e7ff',color:'#2d3a5a',fontWeight:600,cursor:'pointer',fontSize:'1rem',boxShadow:'0 1px 4px #dbeafe'}}>Recalibrate</button>
+          <div style={{marginTop:24,textAlign:'left',fontSize:'0.88rem',maxHeight:90,overflowY:'auto',background:'#f6f8fa',borderRadius:8,padding:8,border:'1px solid #e0e0e0'}}>Logs:<br/>{logs.slice(-8).map((l,i) => <div key={i}>{l}</div>)}</div>
+        </div>
       </div>
+      <footer style={{marginTop:'auto',width:'100%',display:'flex',justifyContent:'center',alignItems:'center',padding:'32px 0 0 0'}}>
+        <div style={{fontSize:'1.35rem',color:'#795548',fontWeight:700,letterSpacing:1.2,background:'rgba(255,255,255,0.8)',borderRadius:8,padding:'12px 36px',boxShadow:'0 2px 8px #e0e0e0'}}>
+          &copy; DEVELOPED BY AB BRACHFELD
+        </div>
+      </footer>
     </div>
   );
 }
