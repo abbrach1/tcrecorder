@@ -60,6 +60,14 @@ function App() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const inputs = devices.filter(d => d.kind === 'audioinput');
         setAudioInputs(inputs);
+        // Auto-select preferred mic if found
+        const preferredLabel = 'Microphone AUX TC (USB Audio and HID) (0573:1573)';
+        const preferred = inputs.find(d => d.label === preferredLabel);
+        if (preferred) {
+          setSelectedInput(preferred.deviceId);
+        } else if (inputs.length > 0) {
+          setSelectedInput(inputs[0].deviceId);
+        }
       } catch (err) {
         log('Could not enumerate audio input devices: ' + err.message);
       }
