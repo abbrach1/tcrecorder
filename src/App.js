@@ -46,7 +46,7 @@ function App() {
   const customRecordingRef = useRef(false);
   const [quietRms, setQuietRms] = useState(4);
   const [showQuietRmsInput, setShowQuietRmsInput] = useState(false);
-  const [startSoundHoldSec, setStartSoundHoldSec] = useState(2); // Default 2s required to start
+  const [startSoundHoldSec, setStartSoundHoldSec] = useState(0.25); // Default 0.25s required to start
   const [showStartHoldInput, setShowStartHoldInput] = useState(false);
   const startSoundStartRef = useRef(null); // For robust recording start
 
