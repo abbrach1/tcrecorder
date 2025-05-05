@@ -46,6 +46,8 @@ function App() {
   const customRecordingRef = useRef(false);
   const [quietRms, setQuietRms] = useState(4);
   const [showQuietRmsInput, setShowQuietRmsInput] = useState(false);
+  const [startSoundHoldSec, setStartSoundHoldSec] = useState(2); // Default 2s required to start
+  const [showStartHoldInput, setShowStartHoldInput] = useState(false);
   const startSoundStartRef = useRef(null); // For robust recording start
 
   function log(msg) {
@@ -158,7 +160,7 @@ function App() {
             startSoundStartRef.current = Date.now();
           }
           const held = (Date.now() - startSoundStartRef.current) / 1000;
-          if (held >= 0.7) { // Require 0.7s of sustained sound
+          if (held >= startSoundHoldSec) { // Use configurable value
             log('Sound detected above threshold, starting custom recording');
             startCustomRecording();
             startSoundStartRef.current = null;
@@ -425,6 +427,20 @@ function App() {
                 style={{width:80,padding:'4px 6px',marginRight:8,borderRadius:4,border:'1px solid #b08968'}}
               />
               <span style={{color:'#795548',fontWeight:500}}>Quiet RMS threshold</span>
+            </div>
+          )}
+          <button onClick={() => setShowStartHoldInput(v => !v)} style={{margin:'8px 0 8px 0',padding:'6px 14px',borderRadius:6,border:'1px solid #1976d2',background:'#f0f7ff',color:'#1976d2',fontWeight:600,cursor:'pointer',fontSize:'0.98rem'}}>Set Start Sound Hold</button>
+          {showStartHoldInput && (
+            <div style={{marginBottom:8}}>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={startSoundHoldSec}
+                onChange={e => setStartSoundHoldSec(Number(e.target.value))}
+                style={{width:80,padding:'4px 6px',marginRight:8,borderRadius:4,border:'1px solid #1976d2'}}
+              />
+              <span style={{color:'#1976d2',fontWeight:500}}>Seconds required to start</span>
             </div>
           )}
           <button onClick={recalibrate} style={{margin:'12px 0 0 0',padding:'8px 18px',borderRadius:6,border:'none',background:'#e0e7ff',color:'#2d3a5a',fontWeight:600,cursor:'pointer',fontSize:'1rem',boxShadow:'0 1px 4px #dbeafe'}}>Recalibrate</button>
