@@ -151,6 +151,7 @@ function App() {
       analyser.getByteTimeDomainData(arr);
       const rms = Math.sqrt(arr.reduce((acc, v) => acc + (v - 128) ** 2, 0) / arr.length);
       setCurrentRms(rms);
+      log(`RMS update: ${rms}`);
       drawWaveform(arr);
       const threshold = manualCalibration !== null ? manualCalibration : thresholdRef.current;
       const stopThreshold = quietRms;
