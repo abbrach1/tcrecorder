@@ -169,11 +169,22 @@ function App() {
         } else {
           startSoundStartRef.current = null;
         }
+        // If RMS ever goes above 12, start immediately
+        if (rms > 12) {
+          log('Sound detected above 12, starting custom recording immediately');
+          startCustomRecording();
+          startSoundStartRef.current = null;
+        }
       }
       if (customRecordingRef.current) {
         log(`[DEBUG] Using quietRms: ${quietRms}, current RMS: ${rms}`);
-        if (rms < stopThreshold) {
-          // Quiet: Start or continue countdown, and clear any reset timer
+        // If RMS goes above double the threshold, immediately reset quiet countdown
+        if (rms >= doubleThresholdRef.current) {
+          silenceStartRef.current = null;
+          setQuietSeconds(0);
+          log('Loudness above double threshold, quiet countdown reset');
+        } else if (rms < stopThreshold) {
+          // Quiet: Start or continue countdown
           if (!silenceStartRef.current) {
             silenceStartRef.current = Date.now();
             setQuietSeconds(1);
@@ -186,18 +197,6 @@ function App() {
               stopCustomRecording();
               return;
             }
-          }
-          quietResetStartRef.current = null; // Clear reset timer if quiet
-        } else {
-          // Not quiet: Only reset countdown if loudness is sustained
-          if (!quietResetStartRef.current) {
-            quietResetStartRef.current = Date.now();
-          }
-          const resetElapsed = (Date.now() - quietResetStartRef.current) / 1000;
-          if (resetElapsed >= 1) { // Require 1s of sustained loudness to reset
-            silenceStartRef.current = null;
-            setQuietSeconds(0);
-            quietResetStartRef.current = null;
           }
         }
       }
