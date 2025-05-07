@@ -151,7 +151,12 @@ function App() {
       analyser.getByteTimeDomainData(arr);
       const rms = Math.sqrt(arr.reduce((acc, v) => acc + (v - 128) ** 2, 0) / arr.length);
       setCurrentRms(rms);
-      log(`RMS update: ${rms}`);
+      // Only log RMS every 20th frame to avoid memory issues
+      if (!window.rmsLogCount) window.rmsLogCount = 0;
+      window.rmsLogCount++;
+      if (window.rmsLogCount % 20 === 0) {
+        log(`RMS update: ${rms}`);
+      }
       drawWaveform(arr);
       const threshold = manualCalibration !== null ? manualCalibration : thresholdRef.current;
       const stopThreshold = quietRms;
@@ -191,8 +196,8 @@ function App() {
           } else {
             const elapsed = Math.floor((Date.now() - silenceStartRef.current) / 1000) + 1;
             setQuietSeconds(elapsed);
-            if (elapsed >= 11) {
-              log('Quiet for 11s, stopping and saving/discarding (custom)');
+            if (elapsed >= 20) {
+              log('Quiet for 20s, stopping and saving/discarding (custom)');
               setQuietSeconds(0);
               stopCustomRecording();
               return;
