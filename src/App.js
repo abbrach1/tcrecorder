@@ -183,12 +183,14 @@ function App() {
       }
       if (customRecordingRef.current) {
         log(`[DEBUG] Using quietRms: ${quietRms}, current RMS: ${rms}`);
-        // If RMS goes above double the threshold, immediately reset quiet countdown
-        if (rms >= doubleThresholdRef.current) {
+        if (rms >= stopThreshold) {
+          // Any sound above quiet RMS resets the countdown
           silenceStartRef.current = null;
           setQuietSeconds(0);
-          log('Loudness above double threshold, quiet countdown reset');
-        } else if (rms < stopThreshold) {
+          if (rms >= doubleThresholdRef.current) {
+            log('Loudness above double threshold, quiet countdown reset');
+          }
+        } else {
           // Quiet: Start or continue countdown
           if (!silenceStartRef.current) {
             silenceStartRef.current = Date.now();
