@@ -242,6 +242,7 @@ function App() {
       return;
     }
     customRecordingRef.current = true;
+    customRecordingStartRef.current = Date.now(); // Ensure start time is always set immediately
     try {
       setCustomRecording(true); // <-- Ensure state is set for UI
       if (!audioContext) {
@@ -262,7 +263,6 @@ function App() {
         log('AudioWorklet module loaded');
       }
       pcmBufferRef.current = [];
-      customRecordingStartRef.current = Date.now();
       customSampleRateRef.current = audioContext.sampleRate;
       const source = audioContext.createMediaStreamSource(mediaStream);
       const workletNode = new window.AudioWorkletNode(audioContext, 'pcm-processor');
@@ -303,7 +303,7 @@ function App() {
     // Flatten PCM buffer
     const samples = flattenPCM(pcmBufferRef.current);
     log(`PCM recording stopped. Duration: ${duration.toFixed(2)}s, samples: ${samples.length}`);
-    if (duration < 11) {
+    if (duration < 22) {
       log(`Recording discarded (too short: ${duration.toFixed(1)}s)`);
       setStatus('Recording too short, discarded. Resetting...');
       setTimeout(() => {
