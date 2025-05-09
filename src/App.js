@@ -28,6 +28,7 @@ function App() {
   const rafRef = useRef(null);
   const [currentRms, setCurrentRms] = useState(0);
   const [logs, setLogs] = useState([]);
+  const [loggingEnabled, setLoggingEnabled] = useState(false); // Toggle for logging
   const waveformRef = useRef(null);
   const recordingStartTimeRef = useRef(null);
   const recordingStartedAtRef = useRef(null);
@@ -51,6 +52,7 @@ function App() {
   const startSoundStartRef = useRef(null); // For robust recording start
 
   function log(msg) {
+    if (!loggingEnabled) return;
     setLogs(lgs => [...lgs.slice(-99), `[${new Date().toLocaleTimeString()}] ${msg}`]);
     // Also output to console
     // eslint-disable-next-line
@@ -451,7 +453,12 @@ function App() {
             </div>
           )}
           <button onClick={recalibrate} style={{margin:'12px 0 0 0',padding:'8px 18px',borderRadius:6,border:'none',background:'#e0e7ff',color:'#2d3a5a',fontWeight:600,cursor:'pointer',fontSize:'1rem',boxShadow:'0 1px 4px #dbeafe'}}>Recalibrate</button>
-          <div style={{marginTop:24,textAlign:'left',fontSize:'0.88rem',maxHeight:90,overflowY:'auto',background:'#f6f8fa',borderRadius:8,padding:8,border:'1px solid #e0e0e0'}}>Logs:<br/>{logs.slice(-8).map((l,i) => <div key={i}>{l}</div>)}</div>
+          <button onClick={() => setLoggingEnabled(v => !v)} style={{marginTop:18,marginBottom:8,padding:'7px 16px',borderRadius:6,border:'1px solid #aaa',background:loggingEnabled ? '#ffeaea' : '#e7fbe7',color:loggingEnabled ? '#b71c1c' : '#388e3c',fontWeight:600,cursor:'pointer',fontSize:'0.98rem'}}>
+          {loggingEnabled ? 'Disable Logs' : 'Enable Logs'}
+        </button>
+        {loggingEnabled && (
+          <div style={{marginTop:8,textAlign:'left',fontSize:'0.88rem',maxHeight:90,overflowY:'auto',background:'#f6f8fa',borderRadius:8,padding:8,border:'1px solid #e0e0e0'}}>Logs:<br/>{logs.slice(-8).map((l,i) => <div key={i}>{l}</div>)}</div>
+        )}
         </div>
       </div>
       <footer style={{marginTop:'auto',width:'100%',display:'flex',justifyContent:'center',alignItems:'center',padding:'32px 0 0 0'}}>
